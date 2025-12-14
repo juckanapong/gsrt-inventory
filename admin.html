@@ -149,7 +149,7 @@
     // ==========================================
     // 🔴 ใส่ URL ของครูตรงนี้
     // ==========================================
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxndMPioIWdrkBKgsQ9b2nFMTWWoWhSzR7elwmgdE_e5K9ZRU5rYBjtZoN1-KiIr17n/exec"; 
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzEmaskPVIcUvNcEujtvo6-0MaR5GjptQ1uUX-8sI1AhQUL9gFm1Bg0Bz0gD_yBTvw0/exec"; 
     // ==========================================
 
     let currentPassword = ""; 
@@ -316,36 +316,66 @@
     }
 
     function updateStatus(transId, action) {
-        const isApprove = action === 'approve';
-        Swal.fire({
-            title: isApprove ? 'อนุมัติการยืม?' : 'รับของคืน?',
-            text: isApprove ? 'ตัดสต็อก -1' : 'คืนสต็อก +1',
-            icon: isApprove ? 'question' : 'info',
-            showCancelButton: true,
-            confirmButtonColor: isApprove ? '#333' : '#198754',
-            confirmButtonText: 'ยืนยัน',
-            cancelButtonText: 'ยกเลิก'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading()});
-                
-                fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ 
-                        action: action, 
-                        trans_id: transId,
-                        password: currentPassword 
-                    })
-                })
-                .then(res => res.json())
-                .then(res => {
-                    if(res.result === 'success') {
-                        loadTransactions(); // รีโหลดข้อมูลใหม่ ตัวเลข Dashboard จะเปลี่ยนเอง
-                        Swal.fire({icon:'success', title:'สำเร็จ', timer: 1500, showConfirmButton: false});
-                    } else {
-                        Swal.fire('ผิดพลาด', res.message, 'error');
-                    }
-                });
+        // กรณีอนุมัติ (Approve) - ทำเหมือนเดิม
+        if (action === 'approve') {
+            Swal.fire({
+                title: 'ยืนยันอนุมัติ?',
+                text: 'ระบบจะตัดสต็อกสินค้า -1',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#333',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    sendDataToScript(transId, 'approve');
+                }
+            });
+        } 
+        // กรณีรับคืน (Return) - เพิ่มเมนูเลือกสภาพของ
+        else if (action === 'return') {
+            Swal.fire({
+                title: 'ตรวจสอบสภาพอุปกรณ์',
+                icon: 'info',
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: '✅ สภาพดี (คืนสต็อก)',
+                confirmButtonColor: '#198754',
+                denyButtonText: '🛠️ ชำรุด (ตัดจำหน่าย)',
+                denyButtonColor: '#dc3545',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // กดปุ่มเขียว (ดี)
+                    sendDataToScript(transId, 'return', 'good');
+                } else if (result.isDenied) {
+                    // กดปุ่มแดง (พัง)
+                    sendDataToScript(transId, 'return', 'broken');
+                }
+            });
+        }
+    }
+
+    // ฟังก์ชันย่อยสำหรับส่งข้อมูล (แยกออกมาให้โค้ดสะอาด)
+    function sendDataToScript(transId, action, condition = null) {
+        Swal.fire({title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading()});
+        
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                action: action, 
+                trans_id: transId,
+                password: currentPassword,
+                condition: condition // ส่งสภาพของไปด้วย
+            })
+        })
+        .then(res => res.json())
+        .then(res => {
+            if(res.result === 'success') {
+                loadTransactions();
+                Swal.fire({icon:'success', title:'บันทึกเรียบร้อย', timer: 1500, showConfirmButton: false});
+            } else {
+                Swal.fire('ผิดพลาด', res.message, 'error');
             }
         });
     }
