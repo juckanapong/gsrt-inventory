@@ -334,17 +334,29 @@
         if (targetId) {
             const item = items.find(i => i.id == targetId);
             if (item && item.available > 0) {
+                // เตรียมรูปภาพ (ถ้าไม่มีรูป ให้ใช้รูป placeholder)
+                let imgSrc = item.image;
+                if (!imgSrc || !imgSrc.startsWith('http')) imgSrc = `https://placehold.co/400x300/eeeeee/764ba2?text=${item.name}`;
+
+                // ✨ แสดง Popup แบบมีรูปภาพ ✨
                 Swal.fire({
-                    title: `พบ ${item.name}`,
-                    text: "ต้องการเพิ่มลงตะกร้าใช่ไหม?",
-                    icon: 'question',
+                    title: `<h5 class="fw-bold mb-0">${item.name}</h5>`, // ชื่ออุปกรณ์
+                    html: `<p class="text-muted small mt-2">ต้องการเพิ่มลงตะกร้าใช่ไหม?</p>`, // ข้อความถาม
+                    imageUrl: imgSrc,            // 📸 เอารูปมาใส่ตรงนี้
+                    imageWidth: 250,             // กำหนดความกว้างรูป
+                    imageHeight: 180,            // กำหนดความสูงรูป
+                    imageAlt: item.name,         // คำอธิบายรูป
                     showCancelButton: true,
-                    confirmButtonText: 'ใส่ตะกร้า',
-                    cancelButtonText: 'ปิด'
+                    confirmButtonText: '<i class="bi bi-cart-plus me-1"></i>ใส่ตะกร้า', // เพิ่มไอคอนที่ปุ่ม
+                    cancelButtonText: 'ปิด',
+                    confirmButtonColor: '#764ba2', // ใช้สีธีมของเรา
+                    customClass: {
+                        image: 'rounded-3 shadow-sm mt-3' // แต่งรูปให้มนๆ มีเงา
+                    }
                 }).then((res) => {
                     if (res.isConfirmed) {
                         addToCart(item.id, item.name);
-                        openCartModal();
+                        openCartModal(); // เปิดตะกร้าโชว์เลย
                     }
                 });
             }
